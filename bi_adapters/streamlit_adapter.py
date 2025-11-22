@@ -28,10 +28,23 @@ class StreamlitAdapter(BaseAdapter):
         Args:
             config: Normalized dashboard configuration
         """
+        # Configure page for wide layout and professional appearance
+        st.set_page_config(
+            page_title=config.title,
+            layout="wide",
+            initial_sidebar_state="collapsed"
+        )
+        
+        # Add custom CSS for professional styling
+        self._inject_custom_css()
+        
         # Set page title and description
         st.title(config.title)
         if config.description:
-            st.markdown(config.description)
+            st.markdown(f"*{config.description}*")
+        
+        # Add spacing
+        st.markdown("---")
         
         # Apply global filters if any
         # TODO: Implement global filter UI
@@ -45,6 +58,67 @@ class StreamlitAdapter(BaseAdapter):
             # Default: render widgets sequentially
             for widget_config in config.widgets:
                 self.render_widget(widget_config)
+    
+    def _inject_custom_css(self) -> None:
+        """Inject custom CSS for professional dashboard styling."""
+        st.markdown("""
+            <style>
+            /* Main container styling */
+            .main .block-container {
+                padding-top: 2rem;
+                padding-bottom: 2rem;
+                max-width: 100%;
+            }
+            
+            /* Metric styling for scorecards */
+            [data-testid="stMetricValue"] {
+                font-size: 2.5rem;
+                font-weight: 600;
+                color: #1f77b4;
+            }
+            
+            [data-testid="stMetricLabel"] {
+                font-size: 1.1rem;
+                font-weight: 500;
+                color: #31333F;
+            }
+            
+            /* Card-like appearance for metrics */
+            [data-testid="metric-container"] {
+                background-color: #f8f9fa;
+                border: 1px solid #e0e0e0;
+                border-radius: 8px;
+                padding: 1.5rem;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+            
+            /* Chart container styling */
+            .stPlotlyChart, .element-container {
+                background-color: white;
+                border-radius: 8px;
+                padding: 1rem;
+            }
+            
+            /* Title styling */
+            h1 {
+                color: #1f1f1f;
+                font-weight: 700;
+                padding-bottom: 0.5rem;
+            }
+            
+            h2, h3 {
+                color: #31333F;
+                font-weight: 600;
+                margin-top: 1rem;
+            }
+            
+            /* Divider styling */
+            hr {
+                margin: 1.5rem 0;
+                border-color: #e0e0e0;
+            }
+            </style>
+        """, unsafe_allow_html=True)
     
     def _render_grid_layout(self, config: DashboardConfig) -> None:
         """
@@ -115,7 +189,7 @@ class StreamlitAdapter(BaseAdapter):
     
     def render_time_series(self, config: WidgetConfig) -> None:
         """
-        Render a time series chart using st.line_chart().
+        Render a time series chart using Plotly for better interactivity.
         
         Args:
             config: Widget configuration with time series data
@@ -125,12 +199,58 @@ class StreamlitAdapter(BaseAdapter):
         # Convert to DataFrame if needed
         df = self._to_dataframe(data)
         
-        st.subheader(config.title)
-        st.line_chart(df)
+        # Use Plotly for better-looking charts
+        try:
+            import plotly.express as px
+            
+            # Create line chart
+            fig = px.line(
+                df,
+                title=config.title,
+                template="plotly_white",
+                height=400
+            )
+            
+            # Customize layout for professional appearance
+            fig.update_layout(
+                title={
+                    'text': config.title,
+                    'font': {'size': 18, 'color': '#31333F', 'family': 'Arial, sans-serif'},
+                    'x': 0,
+                    'xanchor': 'left'
+                },
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                margin=dict(l=20, r=20, t=60, b=20),
+                hovermode='x unified',
+                xaxis=dict(
+                    showgrid=True,
+                    gridcolor='#f0f0f0',
+                    title_font={'size': 12, 'color': '#666'}
+                ),
+                yaxis=dict(
+                    showgrid=True,
+                    gridcolor='#f0f0f0',
+                    title_font={'size': 12, 'color': '#666'}
+                )
+            )
+            
+            # Update line styling
+            fig.update_traces(
+                line=dict(width=3, color='#1f77b4'),
+                hovertemplate='<b>%{y:,.0f}</b><extra></extra>'
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+        except ImportError:
+            # Fallback to basic line chart if Plotly not available
+            st.subheader(config.title)
+            st.line_chart(df, use_container_width=True)
     
     def render_bar_chart(self, config: WidgetConfig) -> None:
         """
-        Render a bar chart using st.bar_chart().
+        Render a bar chart using Plotly for better interactivity.
         
         Args:
             config: Widget configuration with bar chart data
@@ -140,12 +260,57 @@ class StreamlitAdapter(BaseAdapter):
         # Convert to DataFrame if needed
         df = self._to_dataframe(data)
         
-        st.subheader(config.title)
-        st.bar_chart(df)
+        # Use Plotly for better-looking charts
+        try:
+            import plotly.express as px
+            
+            # Create bar chart
+            fig = px.bar(
+                df,
+                title=config.title,
+                template="plotly_white",
+                height=400
+            )
+            
+            # Customize layout for professional appearance
+            fig.update_layout(
+                title={
+                    'text': config.title,
+                    'font': {'size': 18, 'color': '#31333F', 'family': 'Arial, sans-serif'},
+                    'x': 0,
+                    'xanchor': 'left'
+                },
+                plot_bgcolor='white',
+                paper_bgcolor='white',
+                margin=dict(l=20, r=20, t=60, b=20),
+                hovermode='x unified',
+                xaxis=dict(
+                    showgrid=False,
+                    title_font={'size': 12, 'color': '#666'}
+                ),
+                yaxis=dict(
+                    showgrid=True,
+                    gridcolor='#f0f0f0',
+                    title_font={'size': 12, 'color': '#666'}
+                )
+            )
+            
+            # Update bar styling
+            fig.update_traces(
+                marker_color='#1f77b4',
+                hovertemplate='<b>%{y:,.0f}</b><extra></extra>'
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+            
+        except ImportError:
+            # Fallback to basic bar chart if Plotly not available
+            st.subheader(config.title)
+            st.bar_chart(df, use_container_width=True)
     
     def render_table(self, config: WidgetConfig) -> None:
         """
-        Render a table using st.dataframe().
+        Render a table using st.dataframe() with enhanced styling.
         
         Args:
             config: Widget configuration with table data
@@ -156,7 +321,7 @@ class StreamlitAdapter(BaseAdapter):
         df = self._to_dataframe(data)
         
         st.subheader(config.title)
-        st.dataframe(df)
+        st.dataframe(df, use_container_width=True, height=400)
     
     # Helper methods
     
