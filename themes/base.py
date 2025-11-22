@@ -155,10 +155,48 @@ DARK_THEME = Theme(
 )
 
 
+# Ocean theme - blue/teal color scheme
+OCEAN_THEME = Theme(
+    name="ocean",
+    colors=ThemeColors(
+        background="#f0f9ff",  # Very light blue background
+        card_background="#ffffff",  # White cards
+        border="#bae6fd",  # Light blue border
+        divider="#bae6fd",
+        text_primary="#0c4a6e",  # Deep blue text
+        text_secondary="#075985",  # Medium blue text
+        text_muted="#0891b2",  # Cyan muted text
+        chart_primary="#0ea5e9",  # Sky blue for charts
+        chart_grid="#e0f2fe",  # Very light blue grid
+        chart_axis="#bae6fd",  # Light blue axis
+        positive="#14b8a6",  # Teal for positive
+        negative="#f43f5e",  # Rose for negative
+    ),
+    typography=ThemeTypography(
+        font_family="Arial, sans-serif",
+        title_size="16px",
+        subtitle_size="14px",
+        body_size="13px",
+        caption_size="12px",
+        metric_size="32px",
+        title_weight="600",
+        subtitle_weight="600",
+        body_weight="400",
+    ),
+    spacing=ThemeSpacing(
+        card_padding="20px",
+        card_margin="16px",
+        card_border_radius="8px",
+        card_shadow="0 1px 3px rgba(14, 165, 233, 0.1)",
+    ),
+)
+
+
 # Registry of available themes
 THEMES: Dict[str, Theme] = {
     "professional": PROFESSIONAL_THEME,
     "dark": DARK_THEME,
+    "ocean": OCEAN_THEME,
 }
 
 

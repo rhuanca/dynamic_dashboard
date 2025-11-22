@@ -9,6 +9,7 @@ from themes.base import (
     register_theme,
     PROFESSIONAL_THEME,
     DARK_THEME,
+    OCEAN_THEME,
     THEMES,
 )
 
@@ -21,5 +22,6 @@ __all__ = [
     "register_theme",
     "PROFESSIONAL_THEME",
     "DARK_THEME",
+    "OCEAN_THEME",
     "THEMES",
 ]
