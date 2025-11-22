@@ -5,21 +5,36 @@ This adapter implements the BaseAdapter interface for Streamlit,
 allowing dashboards to be rendered as Streamlit apps.
 """
 
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional
 import streamlit as st
 import pandas as pd
 
 from bi_adapters.base import BaseAdapter
 from core.specs import WidgetType
 from core.transform import DashboardConfig, WidgetConfig
+from themes import get_theme, Theme
 
 
 class StreamlitAdapter(BaseAdapter):
     """
     Streamlit implementation of the BaseAdapter.
     
-    Renders dashboards and widgets using Streamlit components.
+    Renders dashboards and widgets using Streamlit components with theme support.
     """
+    
+    def __init__(self, theme: Optional[Union[str, Theme]] = None):
+        """
+        Initialize the Streamlit adapter.
+        
+        Args:
+            theme: Theme name (str) or Theme object. Defaults to "professional".
+        """
+        if theme is None:
+            self.theme = get_theme("professional")
+        elif isinstance(theme, str):
+            self.theme = get_theme(theme)
+        else:
+            self.theme = theme
     
     def render_dashboard(self, config: DashboardConfig) -> None:
         """
@@ -60,41 +75,42 @@ class StreamlitAdapter(BaseAdapter):
                 self.render_widget(widget_config)
     
     def _inject_custom_css(self) -> None:
-        """Inject custom CSS for professional dashboard styling."""
-        st.markdown("""
+        """Inject custom CSS for professional dashboard styling using theme."""
+        colors = self.theme.colors
+        st.markdown(f"""
             <style>
             /* Main container styling */
-            .main .block-container {
+            .main .block-container {{
                 padding-top: 2rem;
                 padding-bottom: 2rem;
                 max-width: 100%;
-                background-color: #f9fafb;
-            }
+                background-color: {colors.background};
+            }}
             
             /* Title styling */
-            h1 {
-                color: #111827;
+            h1 {{
+                color: {colors.text_primary};
                 font-weight: 700;
                 padding-bottom: 0.5rem;
                 font-size: 28px;
-            }
+            }}
             
-            h2, h3 {
-                color: #374151;
+            h2, h3 {{
+                color: {colors.text_secondary};
                 font-weight: 600;
                 margin-top: 1rem;
-            }
+            }}
             
             /* Divider styling */
-            hr {
+            hr {{
                 margin: 1.5rem 0;
-                border-color: #e5e7eb;
-            }
+                border-color: {colors.divider};
+            }}
             
             /* Remove default Streamlit padding */
-            .element-container {
+            .element-container {{
                 margin-bottom: 0;
-            }
+            }}
             </style>
         """, unsafe_allow_html=True)
     
@@ -156,10 +172,15 @@ class StreamlitAdapter(BaseAdapter):
         # Format the value professionally
         formatted_value = self._format_large_number(value)
         
-        # Create clean, professional scorecard HTML
-        scorecard_html = f'''<div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); margin-bottom: 16px; height: 100%;">
-<div style="font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">{config.title}</div>
-<div style="font-size: 32px; font-weight: 700; color: #111827; line-height: 1;">{formatted_value}</div>
+        # Get theme settings
+        colors = self.theme.colors
+        typography = self.theme.typography
+        spacing = self.theme.spacing
+        
+        # Create clean, professional scorecard HTML using theme
+        scorecard_html = f'''<div style="background: {colors.card_background}; border: 1px solid {colors.border}; border-radius: {spacing.card_border_radius}; padding: {spacing.card_padding}; box-shadow: {spacing.card_shadow}; margin-bottom: {spacing.card_margin}; height: 100%;">
+<div style="font-size: {typography.caption_size}; font-weight: {typography.subtitle_weight}; color: {colors.text_muted}; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">{config.title}</div>
+<div style="font-size: {typography.metric_size}; font-weight: {typography.title_weight}; color: {colors.text_primary}; line-height: 1;">{formatted_value}</div>
 </div>'''
         
         # Render using st.markdown
@@ -181,47 +202,55 @@ class StreamlitAdapter(BaseAdapter):
         try:
             import plotly.express as px
             
-            # Create line chart
+            # Get column names - assume first column is x-axis, rest are y-axis
+            columns = df.columns.tolist()
+            x_col = columns[0] if len(columns) > 0 else None
+            y_cols = columns[1:] if len(columns) > 1 else columns
+            
+            # Create line chart with explicit x and y
             fig = px.line(
                 df,
+                x=x_col,
+                y=y_cols,
                 title=config.title,
                 template="plotly_white",
                 height=380
             )
             
-            # Customize layout for professional appearance
+            # Customize layout for professional appearance using theme
+            colors = self.theme.colors
             fig.update_layout(
                 title={
                     'text': config.title,
-                    'font': {'size': 16, 'color': '#111827', 'family': 'Arial, sans-serif', 'weight': 600},
+                    'font': {'size': 16, 'color': colors.text_primary, 'family': self.theme.typography.font_family, 'weight': 600},
                     'x': 0,
                     'xanchor': 'left',
                     'y': 0.98,
                     'yanchor': 'top'
                 },
-                plot_bgcolor='white',
-                paper_bgcolor='white',
+                plot_bgcolor=colors.card_background,
+                paper_bgcolor=colors.card_background,
                 margin=dict(l=10, r=10, t=50, b=10),
                 hovermode='x unified',
                 xaxis=dict(
                     showgrid=True,
-                    gridcolor='#f3f4f6',
-                    title_font={'size': 11, 'color': '#6b7280'},
-                    tickfont={'size': 10, 'color': '#6b7280'},
+                    gridcolor=colors.chart_grid,
+                    title_font={'size': 11, 'color': colors.text_muted},
+                    tickfont={'size': 10, 'color': colors.text_muted},
                     showline=True,
-                    linecolor='#e5e7eb'
+                    linecolor=colors.chart_axis
                 ),
                 yaxis=dict(
                     showgrid=True,
-                    gridcolor='#f3f4f6',
-                    title_font={'size': 11, 'color': '#6b7280'},
-                    tickfont={'size': 10, 'color': '#6b7280'},
+                    gridcolor=colors.chart_grid,
+                    title_font={'size': 11, 'color': colors.text_muted},
+                    tickfont={'size': 10, 'color': colors.text_muted},
                     showline=True,
-                    linecolor='#e5e7eb'
+                    linecolor=colors.chart_axis
                 ),
                 showlegend=True,
                 legend=dict(
-                    font={'size': 10, 'color': '#6b7280'},
+                    font={'size': 10, 'color': colors.text_muted},
                     orientation='h',
                     yanchor='bottom',
                     y=1.02,
@@ -232,7 +261,7 @@ class StreamlitAdapter(BaseAdapter):
             
             # Update line styling
             fig.update_traces(
-                line=dict(width=2.5, color='#3b82f6'),
+                line=dict(width=2.5, color=colors.chart_primary),
                 hovertemplate='<b>%{y:,.0f}</b><extra></extra>'
             )
             
@@ -263,48 +292,56 @@ class StreamlitAdapter(BaseAdapter):
         try:
             import plotly.express as px
             
-            # Create bar chart
+            # Get column names - assume first column is x-axis, second is y-axis
+            columns = df.columns.tolist()
+            x_col = columns[0] if len(columns) > 0 else None
+            y_col = columns[1] if len(columns) > 1 else columns[0]
+            
+            # Create bar chart with explicit x and y
             fig = px.bar(
                 df,
+                x=x_col,
+                y=y_col,
                 title=config.title,
                 template="plotly_white",
                 height=380
             )
             
-            # Customize layout for professional appearance
+            # Customize layout for professional appearance using theme
+            colors = self.theme.colors
             fig.update_layout(
                 title={
                     'text': config.title,
-                    'font': {'size': 16, 'color': '#111827', 'family': 'Arial, sans-serif', 'weight': 600},
+                    'font': {'size': 16, 'color': colors.text_primary, 'family': self.theme.typography.font_family, 'weight': 600},
                     'x': 0,
                     'xanchor': 'left',
                     'y': 0.98,
                     'yanchor': 'top'
                 },
-                plot_bgcolor='white',
-                paper_bgcolor='white',
+                plot_bgcolor=colors.card_background,
+                paper_bgcolor=colors.card_background,
                 margin=dict(l=10, r=10, t=50, b=10),
                 hovermode='x unified',
                 xaxis=dict(
                     showgrid=False,
-                    title_font={'size': 11, 'color': '#6b7280'},
-                    tickfont={'size': 10, 'color': '#6b7280'},
+                    title_font={'size': 11, 'color': colors.text_muted},
+                    tickfont={'size': 10, 'color': colors.text_muted},
                     showline=True,
-                    linecolor='#e5e7eb'
+                    linecolor=colors.chart_axis
                 ),
                 yaxis=dict(
                     showgrid=True,
-                    gridcolor='#f3f4f6',
-                    title_font={'size': 11, 'color': '#6b7280'},
-                    tickfont={'size': 10, 'color': '#6b7280'},
+                    gridcolor=colors.chart_grid,
+                    title_font={'size': 11, 'color': colors.text_muted},
+                    tickfont={'size': 10, 'color': colors.text_muted},
                     showline=True,
-                    linecolor='#e5e7eb'
+                    linecolor=colors.chart_axis
                 )
             )
             
             # Update bar styling
             fig.update_traces(
-                marker_color='#3b82f6',
+                marker_color=colors.chart_primary,
                 hovertemplate='<b>%{y:,.0f}</b><extra></extra>'
             )
             
