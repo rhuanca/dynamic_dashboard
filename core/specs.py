@@ -7,7 +7,7 @@ and widgets in a BI-agnostic way.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 
 class WidgetType(Enum):
@@ -40,8 +40,10 @@ class WidgetSpec:
         widget_id: Unique identifier for this widget
         widget_type: Type of widget (scorecard, chart, etc.)
         title: Display title for the widget
-        data_source: Reference to data source (table, query, etc.)
-        metrics: List of metric field names to display
+        data: Data for the widget - can be:
+            - Direct data: dict, list, pandas DataFrame, or scalar value
+            - String reference: name of a data source (for future use)
+        metrics: List of metric field names to display (optional for direct data)
         dimensions: List of dimension field names (for grouping/filtering)
         filters: Optional filter conditions
         aggregation: Aggregation type for metrics
@@ -50,7 +52,7 @@ class WidgetSpec:
     widget_id: str
     widget_type: WidgetType
     title: str
-    data_source: str
+    data: Union[str, Dict, List, Any]
     metrics: List[str] = field(default_factory=list)
     dimensions: List[str] = field(default_factory=list)
     filters: Dict[str, Any] = field(default_factory=dict)
@@ -102,17 +104,21 @@ def validate_widget_spec(spec: WidgetSpec) -> None:
     if not spec.title:
         raise ValidationError(f"Widget {spec.widget_id}: title is required")
     
-    if not spec.data_source:
-        raise ValidationError(f"Widget {spec.widget_id}: data_source is required")
+    if spec.data is None:
+        raise ValidationError(f"Widget {spec.widget_id}: data is required")
     
-    # Validate that metrics or dimensions are provided for data widgets
+    # For string data references (not direct data), validate metrics/dimensions
+    is_direct_data = not isinstance(spec.data, str)
+    
+    # Validate that metrics or dimensions are provided for data widgets with string references
     if spec.widget_type not in (WidgetType.TEXT, WidgetType.FILTER):
-        if not spec.metrics and not spec.dimensions:
+        if not is_direct_data and not spec.metrics and not spec.dimensions:
             raise ValidationError(
-                f"Widget {spec.widget_id}: at least one metric or dimension is required"
+                f"Widget {spec.widget_id}: at least one metric or dimension is required "
+                f"when using string data references"
             )
     
-    # Validate aggregation is set for metric-based widgets
+    # Validate aggregation is set for metric-based widgets (when metrics are explicitly specified)
     if spec.metrics and spec.widget_type != WidgetType.TABLE:
         if not spec.aggregation:
             raise ValidationError(

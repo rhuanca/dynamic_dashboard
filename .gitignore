@@ -1,1 +1,4 @@
 .env/
+core/__pycache__
+bi_adapters/__pycache__
+__pycache__

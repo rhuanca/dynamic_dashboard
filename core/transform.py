@@ -69,7 +69,7 @@ def transform_widget_spec(spec: WidgetSpec) -> WidgetConfig:
     """
     # Normalize data configuration
     data_config = {
-        "source": spec.data_source,
+        "data": spec.data,  # Can be direct data or string reference
         "metrics": spec.metrics,
         "dimensions": spec.dimensions,
         "aggregation": spec.aggregation.value if spec.aggregation else None,
