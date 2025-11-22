@@ -68,46 +68,19 @@ class StreamlitAdapter(BaseAdapter):
                 padding-top: 2rem;
                 padding-bottom: 2rem;
                 max-width: 100%;
-            }
-            
-            /* Metric styling for scorecards */
-            [data-testid="stMetricValue"] {
-                font-size: 2.5rem;
-                font-weight: 600;
-                color: #1f77b4;
-            }
-            
-            [data-testid="stMetricLabel"] {
-                font-size: 1.1rem;
-                font-weight: 500;
-                color: #31333F;
-            }
-            
-            /* Card-like appearance for metrics */
-            [data-testid="metric-container"] {
-                background-color: #f8f9fa;
-                border: 1px solid #e0e0e0;
-                border-radius: 8px;
-                padding: 1.5rem;
-                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            }
-            
-            /* Chart container styling */
-            .stPlotlyChart, .element-container {
-                background-color: white;
-                border-radius: 8px;
-                padding: 1rem;
+                background-color: #f9fafb;
             }
             
             /* Title styling */
             h1 {
-                color: #1f1f1f;
+                color: #111827;
                 font-weight: 700;
                 padding-bottom: 0.5rem;
+                font-size: 28px;
             }
             
             h2, h3 {
-                color: #31333F;
+                color: #374151;
                 font-weight: 600;
                 margin-top: 1rem;
             }
@@ -115,7 +88,12 @@ class StreamlitAdapter(BaseAdapter):
             /* Divider styling */
             hr {
                 margin: 1.5rem 0;
-                border-color: #e0e0e0;
+                border-color: #e5e7eb;
+            }
+            
+            /* Remove default Streamlit padding */
+            .element-container {
+                margin-bottom: 0;
             }
             </style>
         """, unsafe_allow_html=True)
@@ -166,7 +144,7 @@ class StreamlitAdapter(BaseAdapter):
     
     def render_scorecard(self, config: WidgetConfig) -> None:
         """
-        Render a scorecard using st.metric().
+        Render a professional scorecard with clean business styling.
         
         Args:
             config: Widget configuration with scorecard data
@@ -175,17 +153,17 @@ class StreamlitAdapter(BaseAdapter):
         data = config.data_config.get("data")
         value = self._extract_value(data)
         
-        # Get display configuration
-        number_format = config.display_config.get("number_format", "auto")
+        # Format the value professionally
+        formatted_value = self._format_large_number(value)
         
-        # Format the value
-        formatted_value = self._format_number(value, number_format)
+        # Create clean, professional scorecard HTML
+        scorecard_html = f'''<div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); margin-bottom: 16px; height: 100%;">
+<div style="font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">{config.title}</div>
+<div style="font-size: 32px; font-weight: 700; color: #111827; line-height: 1;">{formatted_value}</div>
+</div>'''
         
-        # Render using st.metric
-        st.metric(
-            label=config.title,
-            value=formatted_value
-        )
+        # Render using st.markdown
+        st.markdown(scorecard_html, unsafe_allow_html=True)
     
     def render_time_series(self, config: WidgetConfig) -> None:
         """
@@ -208,45 +186,66 @@ class StreamlitAdapter(BaseAdapter):
                 df,
                 title=config.title,
                 template="plotly_white",
-                height=400
+                height=380
             )
             
             # Customize layout for professional appearance
             fig.update_layout(
                 title={
                     'text': config.title,
-                    'font': {'size': 18, 'color': '#31333F', 'family': 'Arial, sans-serif'},
+                    'font': {'size': 16, 'color': '#111827', 'family': 'Arial, sans-serif', 'weight': 600},
                     'x': 0,
-                    'xanchor': 'left'
+                    'xanchor': 'left',
+                    'y': 0.98,
+                    'yanchor': 'top'
                 },
                 plot_bgcolor='white',
                 paper_bgcolor='white',
-                margin=dict(l=20, r=20, t=60, b=20),
+                margin=dict(l=10, r=10, t=50, b=10),
                 hovermode='x unified',
                 xaxis=dict(
                     showgrid=True,
-                    gridcolor='#f0f0f0',
-                    title_font={'size': 12, 'color': '#666'}
+                    gridcolor='#f3f4f6',
+                    title_font={'size': 11, 'color': '#6b7280'},
+                    tickfont={'size': 10, 'color': '#6b7280'},
+                    showline=True,
+                    linecolor='#e5e7eb'
                 ),
                 yaxis=dict(
                     showgrid=True,
-                    gridcolor='#f0f0f0',
-                    title_font={'size': 12, 'color': '#666'}
+                    gridcolor='#f3f4f6',
+                    title_font={'size': 11, 'color': '#6b7280'},
+                    tickfont={'size': 10, 'color': '#6b7280'},
+                    showline=True,
+                    linecolor='#e5e7eb'
+                ),
+                showlegend=True,
+                legend=dict(
+                    font={'size': 10, 'color': '#6b7280'},
+                    orientation='h',
+                    yanchor='bottom',
+                    y=1.02,
+                    xanchor='right',
+                    x=1
                 )
             )
             
             # Update line styling
             fig.update_traces(
-                line=dict(width=3, color='#1f77b4'),
+                line=dict(width=2.5, color='#3b82f6'),
                 hovertemplate='<b>%{y:,.0f}</b><extra></extra>'
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            # Add border styling via Plotly
+            fig.update_xaxes(mirror=True)
+            fig.update_yaxes(mirror=True)
+            
+            st.plotly_chart(fig, width='stretch', config={'displayModeBar': False})
             
         except ImportError:
             # Fallback to basic line chart if Plotly not available
             st.subheader(config.title)
-            st.line_chart(df, use_container_width=True)
+            st.line_chart(df, width='stretch')
     
     def render_bar_chart(self, config: WidgetConfig) -> None:
         """
@@ -269,44 +268,56 @@ class StreamlitAdapter(BaseAdapter):
                 df,
                 title=config.title,
                 template="plotly_white",
-                height=400
+                height=380
             )
             
             # Customize layout for professional appearance
             fig.update_layout(
                 title={
                     'text': config.title,
-                    'font': {'size': 18, 'color': '#31333F', 'family': 'Arial, sans-serif'},
+                    'font': {'size': 16, 'color': '#111827', 'family': 'Arial, sans-serif', 'weight': 600},
                     'x': 0,
-                    'xanchor': 'left'
+                    'xanchor': 'left',
+                    'y': 0.98,
+                    'yanchor': 'top'
                 },
                 plot_bgcolor='white',
                 paper_bgcolor='white',
-                margin=dict(l=20, r=20, t=60, b=20),
+                margin=dict(l=10, r=10, t=50, b=10),
                 hovermode='x unified',
                 xaxis=dict(
                     showgrid=False,
-                    title_font={'size': 12, 'color': '#666'}
+                    title_font={'size': 11, 'color': '#6b7280'},
+                    tickfont={'size': 10, 'color': '#6b7280'},
+                    showline=True,
+                    linecolor='#e5e7eb'
                 ),
                 yaxis=dict(
                     showgrid=True,
-                    gridcolor='#f0f0f0',
-                    title_font={'size': 12, 'color': '#666'}
+                    gridcolor='#f3f4f6',
+                    title_font={'size': 11, 'color': '#6b7280'},
+                    tickfont={'size': 10, 'color': '#6b7280'},
+                    showline=True,
+                    linecolor='#e5e7eb'
                 )
             )
             
             # Update bar styling
             fig.update_traces(
-                marker_color='#1f77b4',
+                marker_color='#3b82f6',
                 hovertemplate='<b>%{y:,.0f}</b><extra></extra>'
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            # Add border styling
+            fig.update_xaxes(mirror=True)
+            fig.update_yaxes(mirror=True)
+            
+            st.plotly_chart(fig, width='stretch', config={'displayModeBar': False})
             
         except ImportError:
             # Fallback to basic bar chart if Plotly not available
             st.subheader(config.title)
-            st.bar_chart(df, use_container_width=True)
+            st.bar_chart(df, width='stretch')
     
     def render_table(self, config: WidgetConfig) -> None:
         """
@@ -320,8 +331,10 @@ class StreamlitAdapter(BaseAdapter):
         # Convert to DataFrame if needed
         df = self._to_dataframe(data)
         
-        st.subheader(config.title)
-        st.dataframe(df, use_container_width=True, height=400)
+        # Use container for consistent styling
+        with st.container():
+            st.markdown(f'<div style="font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 8px;">{config.title}</div>', unsafe_allow_html=True)
+            st.dataframe(df, width='stretch', height=400)
     
     # Helper methods
     
@@ -379,6 +392,81 @@ class StreamlitAdapter(BaseAdapter):
         # For now, just return string representation
         return str(value)
     
+    def _format_large_number(self, value: Union[int, float]) -> str:
+        """
+        Format large numbers with K, M, B suffixes.
+        
+        Args:
+            value: Numeric value to format
+            
+        Returns:
+            Formatted string (e.g., "1.5K", "2.3M", "1.2B")
+        """
+        if not isinstance(value, (int, float)):
+            return str(value)
+        
+        abs_value = abs(value)
+        sign = "-" if value < 0 else ""
+        
+        if abs_value >= 1_000_000_000:
+            return f"{sign}${abs_value / 1_000_000_000:.1f}B"
+        elif abs_value >= 1_000_000:
+            return f"{sign}${abs_value / 1_000_000:.1f}M"
+        elif abs_value >= 1_000:
+            return f"{sign}${abs_value / 1_000:.1f}K"
+        else:
+            return f"{sign}${abs_value:,.0f}"
+    
+    def _render_sparkline_svg(self, data: List[float]) -> str:
+        """
+        Render a mini sparkline chart as SVG.
+        
+        Args:
+            data: List of numeric values
+            
+        Returns:
+            SVG string for the sparkline
+        """
+        if not data or len(data) < 2:
+            return ""
+        
+        # Normalize data to 0-1 range
+        min_val = min(data)
+        max_val = max(data)
+        range_val = max_val - min_val if max_val != min_val else 1
+        
+        normalized = [(v - min_val) / range_val for v in data]
+        
+        # SVG dimensions
+        width = 120
+        height = 30
+        
+        # Calculate points for polyline
+        x_step = width / (len(data) - 1)
+        points = []
+        for i, val in enumerate(normalized):
+            x = i * x_step
+            y = height - (val * height)  # Invert Y axis
+            points.append(f"{x},{y}")
+        
+        points_str = " ".join(points)
+        
+        # Create SVG
+        svg = f"""
+        <svg width="{width}" height="{height}" style="display: block;">
+            <polyline
+                points="{points_str}"
+                fill="none"
+                stroke="rgba(255, 255, 255, 0.8)"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            />
+        </svg>
+        """
+        
+        return svg
+    
     def _to_dataframe(self, data: Any) -> pd.DataFrame:
         """
         Convert various data formats to pandas DataFrame.
@@ -400,3 +488,4 @@ class StreamlitAdapter(BaseAdapter):
         
         # Default: create a simple DataFrame
         return pd.DataFrame([data])
+

@@ -27,13 +27,20 @@ sales_data.set_index('date', inplace=True)
 # Calculate total sales for the scorecard
 total_sales = sales_data['sales'].sum()
 
+# Calculate previous period for delta
+# For simplicity, compare last 15 days vs first 15 days
+first_half_sales = sales_data['sales'].iloc[:15].sum()
+second_half_sales = sales_data['sales'].iloc[15:].sum()
+delta_absolute = second_half_sales - first_half_sales
+delta_percentage = (delta_absolute / first_half_sales) * 100 if first_half_sales > 0 else 0
+
 # Create dashboard with both widgets
 dashboard = DashboardSpec(
     dashboard_id="sales_dashboard",
     title="📊 Sales Performance Dashboard",
     description="Track daily sales trends and total revenue over the last 30 days",
     widgets=[
-        # Scorecard showing total sales
+        # Enhanced scorecard showing total sales with delta and sparkline
         WidgetSpec(
             widget_id="total_sales_scorecard",
             widget_type=WidgetType.SCORECARD,
