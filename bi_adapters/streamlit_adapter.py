@@ -53,10 +53,10 @@ class StreamlitAdapter(BaseAdapter):
         # Add custom CSS for professional styling
         self._inject_custom_css()
         
-        # Set page title and description
+        # Render title and description
         st.title(config.title)
         if config.description:
-            st.markdown(f"*{config.description}*")
+            st.caption(config.description)
         
         # Add spacing
         st.markdown("---")
@@ -84,27 +84,82 @@ class StreamlitAdapter(BaseAdapter):
                 padding-top: 2rem;
                 padding-bottom: 2rem;
                 max-width: 100%;
-                background-color: {colors.background};
+                background-color: {colors.background} !important;
+            }}
+            
+            /* Streamlit app background */
+            .stApp {{
+                background-color: {colors.background} !important;
             }}
             
             /* Title styling */
             h1 {{
-                color: {colors.text_primary};
+                color: {colors.text_primary} !important;
                 font-weight: 700;
                 padding-bottom: 0.5rem;
                 font-size: 28px;
             }}
             
             h2, h3 {{
-                color: {colors.text_secondary};
+                color: {colors.text_secondary} !important;
                 font-weight: 600;
                 margin-top: 1rem;
+            }}
+            
+            /* Caption styling */
+            .caption, [data-testid="stCaptionContainer"] {{
+                color: {colors.text_muted} !important;
             }}
             
             /* Divider styling */
             hr {{
                 margin: 1.5rem 0;
-                border-color: {colors.divider};
+                border-color: {colors.divider} !important;
+                background-color: {colors.divider} !important;
+            }}
+            
+            /* Dataframe styling for theme consistency */
+            [data-testid="stDataFrame"] {{
+                background-color: {colors.card_background} !important;
+            }}
+            
+            .dataframe {{
+                background-color: {colors.card_background} !important;
+                color: {colors.text_primary} !important;
+                border: 1px solid {colors.border} !important;
+            }}
+            
+            .dataframe thead tr {{
+                background-color: {colors.card_background} !important;
+            }}
+            
+            .dataframe thead th {{
+                background-color: {colors.card_background} !important;
+                color: {colors.text_secondary} !important;
+                font-weight: 600 !important;
+                border-bottom: 2px solid {colors.border} !important;
+                padding: 12px !important;
+            }}
+            
+            .dataframe tbody tr {{
+                background-color: {colors.card_background} !important;
+                border-bottom: 1px solid {colors.border} !important;
+            }}
+            
+            .dataframe tbody tr:hover {{
+                background-color: {colors.background} !important;
+            }}
+            
+            .dataframe tbody td {{
+                color: {colors.text_primary} !important;
+                padding: 10px 12px !important;
+                border-color: {colors.border} !important;
+            }}
+            
+            /* Streamlit dataframe container */
+            .stDataFrame {{
+                background-color: {colors.card_background} !important;
+                border-radius: 8px !important;
             }}
             
             /* Remove default Streamlit padding */
@@ -358,7 +413,7 @@ class StreamlitAdapter(BaseAdapter):
     
     def render_table(self, config: WidgetConfig) -> None:
         """
-        Render a table using st.dataframe() with enhanced styling.
+        Render a table with full theme styling using HTML.
         
         Args:
             config: Widget configuration with table data
@@ -368,10 +423,39 @@ class StreamlitAdapter(BaseAdapter):
         # Convert to DataFrame if needed
         df = self._to_dataframe(data)
         
-        # Use container for consistent styling
-        with st.container():
-            st.markdown(f'<div style="font-size: 14px; font-weight: 600; color: #111827; margin-bottom: 8px;">{config.title}</div>', unsafe_allow_html=True)
-            st.dataframe(df, width='stretch', height=400)
+        # Get theme settings
+        colors = self.theme.colors
+        typography = self.theme.typography
+        spacing = self.theme.spacing
+        
+        # Build HTML table with theme styling
+        table_html = f'''
+        <div style="background: {colors.card_background}; border: 1px solid {colors.border}; 
+                    border-radius: {spacing.card_border_radius}; padding: {spacing.card_padding}; 
+                    box-shadow: {spacing.card_shadow}; margin-bottom: {spacing.card_margin};">
+            <div style="font-size: {typography.subtitle_size}; font-weight: {typography.subtitle_weight}; 
+                        color: {colors.text_primary}; margin-bottom: 16px;">{config.title}</div>
+            <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: {typography.body_size};">
+                    <thead>
+                        <tr style="border-bottom: 2px solid {colors.border};">
+                            {''.join(f'<th style="text-align: left; padding: 12px; color: {colors.text_secondary}; font-weight: 600;">{col}</th>' for col in df.columns)}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {''.join(
+                            f'<tr style="border-bottom: 1px solid {colors.border};">' +
+                            ''.join(f'<td style="padding: 10px 12px; color: {colors.text_primary};">{val}</td>' for val in row) +
+                            '</tr>'
+                            for row in df.values
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        '''
+        
+        st.markdown(table_html, unsafe_allow_html=True)
     
     # Helper methods
     

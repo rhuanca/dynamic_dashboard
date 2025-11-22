@@ -118,9 +118,47 @@ PROFESSIONAL_THEME = Theme(
 )
 
 
+# Dark theme for modern dashboards
+DARK_THEME = Theme(
+    name="dark",
+    colors=ThemeColors(
+        background="#0f172a",  # Dark slate background
+        card_background="#1e293b",  # Slightly lighter card background
+        border="#334155",  # Subtle border
+        divider="#334155",
+        text_primary="#f1f5f9",  # Light text
+        text_secondary="#cbd5e1",  # Slightly muted light text
+        text_muted="#94a3b8",  # Muted text
+        chart_primary="#60a5fa",  # Bright blue for charts
+        chart_grid="#334155",  # Subtle grid
+        chart_axis="#475569",  # Axis lines
+        positive="#34d399",  # Green for positive
+        negative="#f87171",  # Red for negative
+    ),
+    typography=ThemeTypography(
+        font_family="Arial, sans-serif",
+        title_size="16px",
+        subtitle_size="14px",
+        body_size="13px",
+        caption_size="12px",
+        metric_size="32px",
+        title_weight="600",
+        subtitle_weight="600",
+        body_weight="400",
+    ),
+    spacing=ThemeSpacing(
+        card_padding="20px",
+        card_margin="16px",
+        card_border_radius="8px",
+        card_shadow="0 4px 6px rgba(0, 0, 0, 0.3)",
+    ),
+)
+
+
 # Registry of available themes
 THEMES: Dict[str, Theme] = {
     "professional": PROFESSIONAL_THEME,
+    "dark": DARK_THEME,
 }
 
 

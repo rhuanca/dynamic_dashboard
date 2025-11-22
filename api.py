@@ -1,20 +1,22 @@
 """
-Public API for the dynamic dashboard library.
+Public API for creating dashboards.
 
-This module provides the main entry points for creating and managing dashboards.
+This module provides the main entry point for creating dashboards
+using the dynamic dashboard library.
 """
 
-from typing import Optional
+from typing import Optional, Union
 
 from core.specs import DashboardSpec, validate_dashboard_spec
 from core.transform import transform_dashboard_spec
-from bi_adapters.base import BaseAdapter
 from bi_adapters.streamlit_adapter import StreamlitAdapter
+from themes import Theme
 
 
 def create_dashboard(
     spec: DashboardSpec,
-    adapter: str = "streamlit"
+    adapter: str = "streamlit",
+    theme: Optional[Union[str, Theme]] = None
 ) -> None:
     """
     Create and render a dashboard from a specification.
@@ -25,6 +27,23 @@ def create_dashboard(
     Args:
         spec: Dashboard specification
         adapter: Name of the BI adapter to use ("streamlit", etc.)
+        theme: Theme name (str) or Theme object (default: "professional")
+        
+    Example:
+        >>> from api import create_dashboard
+        >>> from core.specs import DashboardSpec, WidgetSpec, WidgetType
+        >>> 
+        >>> dashboard = DashboardSpec(
+        ...     dashboard_id="my_dashboard",
+        ...     title="My Dashboard",
+        ...     widgets=[...]
+        ... )
+        >>> 
+        >>> # Use default professional theme
+        >>> create_dashboard(dashboard)
+        >>> 
+        >>> # Use dark theme
+        >>> create_dashboard(dashboard, theme="dark")
         
     Raises:
         ValidationError: If the spec is invalid
@@ -36,36 +55,11 @@ def create_dashboard(
     # Transform to normalized config
     config = transform_dashboard_spec(spec)
     
-    # Get the adapter
-    adapter_instance = _get_adapter(adapter)
+    # Get the adapter with theme
+    if adapter == "streamlit":
+        adapter_instance = StreamlitAdapter(theme=theme)
+    else:
+        raise ValueError(f"Unsupported adapter: {adapter}")
     
     # Render the dashboard
     adapter_instance.render_dashboard(config)
-
-
-def _get_adapter(adapter_name: str) -> BaseAdapter:
-    """
-    Get an adapter instance by name.
-    
-    Args:
-        adapter_name: Name of the adapter
-        
-    Returns:
-        Adapter instance
-        
-    Raises:
-        ValueError: If adapter is not supported
-    """
-    adapters = {
-        "streamlit": StreamlitAdapter,
-    }
-    
-    adapter_class = adapters.get(adapter_name.lower())
-    if not adapter_class:
-        supported = ", ".join(adapters.keys())
-        raise ValueError(
-            f"Unsupported adapter: {adapter_name}. "
-            f"Supported adapters: {supported}"
-        )
-    
-    return adapter_class()
