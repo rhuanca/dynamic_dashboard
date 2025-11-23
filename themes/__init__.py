@@ -12,6 +12,8 @@ from themes.base import (
     OCEAN_THEME,
     THEMES,
 )
+from themes.css_builder import CSSBuilder
+from themes.html_builders import HTMLCardBuilder, HTMLTableBuilder
 
 __all__ = [
     "Theme",
@@ -24,4 +26,7 @@ __all__ = [
     "DARK_THEME",
     "OCEAN_THEME",
     "THEMES",
+    "CSSBuilder",
+    "HTMLCardBuilder",
+    "HTMLTableBuilder",
 ]

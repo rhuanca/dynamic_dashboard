@@ -12,7 +12,7 @@ import pandas as pd
 from bi_adapters.base import BaseAdapter
 from core.specs import WidgetType
 from core.transform import DashboardConfig, WidgetConfig
-from themes import get_theme, Theme
+from themes import get_theme, Theme, CSSBuilder, HTMLCardBuilder, HTMLTableBuilder
 
 
 class StreamlitAdapter(BaseAdapter):
@@ -35,6 +35,11 @@ class StreamlitAdapter(BaseAdapter):
             self.theme = get_theme(theme)
         else:
             self.theme = theme
+        
+        # Initialize styling builders
+        self.css_builder = CSSBuilder(self.theme)
+        self.card_builder = HTMLCardBuilder(self.theme)
+        self.table_builder = HTMLTableBuilder(self.theme)
     
     def render_dashboard(self, config: DashboardConfig) -> None:
         """
@@ -76,98 +81,8 @@ class StreamlitAdapter(BaseAdapter):
     
     def _inject_custom_css(self) -> None:
         """Inject custom CSS for professional dashboard styling using theme."""
-        colors = self.theme.colors
-        st.markdown(f"""
-            <style>
-            /* Main container styling */
-            .main .block-container {{
-                padding-top: 2rem;
-                padding-bottom: 2rem;
-                max-width: 100%;
-                background-color: {colors.background} !important;
-            }}
-            
-            /* Streamlit app background */
-            .stApp {{
-                background-color: {colors.background} !important;
-            }}
-            
-            /* Title styling */
-            h1 {{
-                color: {colors.text_primary} !important;
-                font-weight: 700;
-                padding-bottom: 0.5rem;
-                font-size: 28px;
-            }}
-            
-            h2, h3 {{
-                color: {colors.text_secondary} !important;
-                font-weight: 600;
-                margin-top: 1rem;
-            }}
-            
-            /* Caption styling */
-            .caption, [data-testid="stCaptionContainer"] {{
-                color: {colors.text_muted} !important;
-            }}
-            
-            /* Divider styling */
-            hr {{
-                margin: 1.5rem 0;
-                border-color: {colors.divider} !important;
-                background-color: {colors.divider} !important;
-            }}
-            
-            /* Dataframe styling for theme consistency */
-            [data-testid="stDataFrame"] {{
-                background-color: {colors.card_background} !important;
-            }}
-            
-            .dataframe {{
-                background-color: {colors.card_background} !important;
-                color: {colors.text_primary} !important;
-                border: 1px solid {colors.border} !important;
-            }}
-            
-            .dataframe thead tr {{
-                background-color: {colors.card_background} !important;
-            }}
-            
-            .dataframe thead th {{
-                background-color: {colors.card_background} !important;
-                color: {colors.text_secondary} !important;
-                font-weight: 600 !important;
-                border-bottom: 2px solid {colors.border} !important;
-                padding: 12px !important;
-            }}
-            
-            .dataframe tbody tr {{
-                background-color: {colors.card_background} !important;
-                border-bottom: 1px solid {colors.border} !important;
-            }}
-            
-            .dataframe tbody tr:hover {{
-                background-color: {colors.background} !important;
-            }}
-            
-            .dataframe tbody td {{
-                color: {colors.text_primary} !important;
-                padding: 10px 12px !important;
-                border-color: {colors.border} !important;
-            }}
-            
-            /* Streamlit dataframe container */
-            .stDataFrame {{
-                background-color: {colors.card_background} !important;
-                border-radius: 8px !important;
-            }}
-            
-            /* Remove default Streamlit padding */
-            .element-container {{
-                margin-bottom: 0;
-            }}
-            </style>
-        """, unsafe_allow_html=True)
+        css = self.css_builder.build_global_css()
+        st.markdown(css, unsafe_allow_html=True)
     
     def _render_grid_layout(self, config: DashboardConfig) -> None:
         """
@@ -227,16 +142,8 @@ class StreamlitAdapter(BaseAdapter):
         # Format the value professionally
         formatted_value = self._format_large_number(value)
         
-        # Get theme settings
-        colors = self.theme.colors
-        typography = self.theme.typography
-        spacing = self.theme.spacing
-        
-        # Create clean, professional scorecard HTML using theme
-        scorecard_html = f'''<div style="background: {colors.card_background}; border: 1px solid {colors.border}; border-radius: {spacing.card_border_radius}; padding: {spacing.card_padding}; box-shadow: {spacing.card_shadow}; margin-bottom: {spacing.card_margin}; height: 100%;">
-<div style="font-size: {typography.caption_size}; font-weight: {typography.subtitle_weight}; color: {colors.text_muted}; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">{config.title}</div>
-<div style="font-size: {typography.metric_size}; font-weight: {typography.title_weight}; color: {colors.text_primary}; line-height: 1;">{formatted_value}</div>
-</div>'''
+        # Use HTML card builder to generate scorecard
+        scorecard_html = self.card_builder.build_scorecard(config.title, formatted_value)
         
         # Render using st.markdown
         st.markdown(scorecard_html, unsafe_allow_html=True)
@@ -423,37 +330,8 @@ class StreamlitAdapter(BaseAdapter):
         # Convert to DataFrame if needed
         df = self._to_dataframe(data)
         
-        # Get theme settings
-        colors = self.theme.colors
-        typography = self.theme.typography
-        spacing = self.theme.spacing
-        
-        # Build HTML table with theme styling
-        table_html = f'''
-        <div style="background: {colors.card_background}; border: 1px solid {colors.border}; 
-                    border-radius: {spacing.card_border_radius}; padding: {spacing.card_padding}; 
-                    box-shadow: {spacing.card_shadow}; margin-bottom: {spacing.card_margin};">
-            <div style="font-size: {typography.subtitle_size}; font-weight: {typography.subtitle_weight}; 
-                        color: {colors.text_primary}; margin-bottom: 16px;">{config.title}</div>
-            <div style="overflow-x: auto; max-height: 400px; overflow-y: auto;">
-                <table style="width: 100%; border-collapse: collapse; font-size: {typography.body_size};">
-                    <thead>
-                        <tr style="border-bottom: 2px solid {colors.border};">
-                            {''.join(f'<th style="text-align: left; padding: 12px; color: {colors.text_secondary}; font-weight: 600;">{col}</th>' for col in df.columns)}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {''.join(
-                            f'<tr style="border-bottom: 1px solid {colors.border};">' +
-                            ''.join(f'<td style="padding: 10px 12px; color: {colors.text_primary};">{val}</td>' for val in row) +
-                            '</tr>'
-                            for row in df.values
-                        )}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        '''
+        # Use HTML table builder to generate table
+        table_html = self.table_builder.build_table(df, config.title)
         
         st.markdown(table_html, unsafe_allow_html=True)
     
