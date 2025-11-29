@@ -1,0 +1,32 @@
+# OpenAI Configuration
+openai:
+  model: "gpt-4o-mini"
+  temperature: 0.1
+  max_tokens: 1000
+
+# Database Configuration
+database:
+  path: "database/equipment.db"
+  
+# Agent Configuration
+agents:
+  nlu:
+    name: "NLU Agent"
+    description: "Natural Language Understanding - Intent Classification"
+    
+  database:
+    name: "Database Agent"
+    description: "SQL Query Generation and Execution"
+    
+  response:
+    name: "Response Generator"
+    description: "Widget Creation and Response Formatting"
+    
+  orchestrator:
+    name: "Orchestrator"
+    description: "Multi-Agent Workflow Coordinator"
+
+# Widget Configuration
+widgets:
+  max_table_rows: 100
+  default_chart_height: 400
