@@ -1,6 +1,6 @@
-.env/
-__pycache__
-core/__pycache__
-bi_adapters/__pycache__
-themes/__pycache__
-examples/__pycache__
+agents/__pycache__/
+database/*.db
+database/__pycache__/
+config/__pycache__/
+tests/__pycache__/
+.env

@@ -1,5 +1,5 @@
 """
-Inventory Data Analyst Assistant - Main Application Entry Point
+Equipment Inventory Assistant - Main Application Entry Point
 
 This is the main Streamlit application that orchestrates the chat interface
 and dynamic dashboard rendering.
@@ -8,53 +8,46 @@ Run with: streamlit run app.py
 """
 
 import streamlit as st
+
+from database.init import initialize_database
+from ui_custom_styles import apply_custom_styling
 from ui_layout import render_main_layout
+
+
+def configure_page() -> None:
+    """Configure Streamlit page settings."""
+    st.set_page_config(
+        page_title="Equipment Inventory Assistant",
+        page_icon="🏭",
+        layout="wide",
+        initial_sidebar_state="collapsed"
+    )
 
 
 def main() -> None:
     """
     Main application entry point.
     
-    Sets up Streamlit page configuration and renders the main layout.
+    Orchestrates:
+    1. Page configuration
+    2. Database initialization
+    3. Custom styling
+    4. Main UI layout rendering
     """
-    # Configure Streamlit page
-    st.set_page_config(
-        page_title="Inventory Data Analyst Assistant",
-        page_icon="🤖",
-        layout="wide",
-        initial_sidebar_state="collapsed"
-    )
+    # Configure page
+    configure_page()
     
-    # Apply custom CSS for better styling
-    st.markdown(
-        """
-        <style>
-        /* Hide Streamlit branding */
-        #MainMenu {visibility: hidden;}
-        footer {visibility: hidden;}
-        
-        /* Improve chat input styling */
-        .stTextInput > div > div > input {
-            border-radius: 20px;
-        }
-        
-        /* Improve button styling */
-        .stButton > button {
-            border-radius: 20px;
-            height: 38px;
-        }
-        
-        /* Reduce padding for better space usage */
-        .block-container {
-            padding-top: 2rem;
-            padding-bottom: 0rem;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    # Initialize database
+    db_ready = initialize_database()
     
-    # Render the main UI layout
+    if not db_ready:
+        st.error("⚠️ Database not ready. Please check the error messages above.")
+        st.stop()
+    
+    # Apply custom styling
+    apply_custom_styling()
+    
+    # Render main UI
     render_main_layout()
 
 
