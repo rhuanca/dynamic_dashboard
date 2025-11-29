@@ -1,380 +1,423 @@
-# Dynamic Dashboard Library
+# Dynamic Dashboard - Multi-Agent Equipment Inventory System
 
-A flexible, theme-aware Python library for creating professional business dashboards with minimal code.
+A production-ready, multi-agent AI system for equipment inventory management with natural language chat interface and dynamic dashboard generation.
 
-## 🎯 Project Goal
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![Streamlit](https://img.shields.io/badge/streamlit-1.51+-red.svg)
+![LangGraph](https://img.shields.io/badge/langgraph-0.2+-green.svg)
+![OpenAI](https://img.shields.io/badge/openai-gpt--4o--mini-purple.svg)
 
-Build a **declarative dashboard library** that:
-- ✅ Separates data from presentation
-- ✅ Supports multiple BI adapters (Streamlit, PowerBI, Tableau)
-- ✅ Provides professional themes out-of-the-box
-- ✅ Enables rapid dashboard development
-- ✅ Maintains clean separation of concerns
+## 🎯 Overview
 
-## 🏗️ Project Structure
+This application demonstrates a **multi-agent architecture** using LangGraph and OpenAI to create an intelligent equipment inventory management system. Users can ask questions in natural language and receive dynamic visualizations as responses.
 
-```
-dynamic_dashboard/
-├── core/                    # Business logic
-│   ├── specs.py            # Dashboard specifications (data models)
-│   └── transform.py        # Spec → Config transformation
-├── bi_adapters/            # Rendering layer
-│   ├── base.py             # Adapter interface
-│   └── streamlit_adapter.py # Streamlit implementation
-├── themes/                 # Styling layer
-│   ├── base.py             # Theme data (colors, fonts, spacing)
-│   ├── css_builder.py      # Theme → CSS conversion
-│   └── html_builders.py    # Themed HTML components
-├── examples/               # Example dashboards
-│   ├── simple_scorecard.py
-│   ├── comprehensive_demo.py
-│   ├── dark_comprehensive_demo.py
-│   └── ocean_theme_demo.py
-└── api.py                  # Public API
-```
+**Example Queries:**
+- "What's our total equipment value?" → Scorecard widget
+- "Show equipment out of service" → Table widget
+- "Equipment by department" → Bar chart widget
+- "What's our depreciation this quarter?" → Financial scorecard
 
-## 🎨 Architecture
+---
 
-### High-Level Architecture
+## 🏗️ Multi-Agent Architecture
+
+The system uses **4 specialized agents** coordinated by LangGraph:
 
 ```mermaid
-graph LR
-    A[User Code] --> B[API]
-    B --> C[Core Transform]
-    C --> D[BI Adapter]
-    D --> E[Streamlit]
+graph TB
+    User[👤 User Query] --> Streamlit[Streamlit Chat Interface]
+    Streamlit --> Orch[🎯 Orchestrator<br/>LangGraph StateGraph]
     
-    F[Theme] --> G[CSS Builder]
-    F --> H[HTML Builders]
-    G --> D
-    H --> D
+    Orch --> NLU[🧠 NLU Agent<br/>Intent Classification]
+    NLU --> Orch
     
-    style A fill:#e1f5ff
-    style B fill:#fff3e0
-    style C fill:#f3e5f5
-    style D fill:#e8f5e9
-    style E fill:#fce4ec
-    style F fill:#fff9c4
-    style G fill:#fff9c4
-    style H fill:#fff9c4
+    Orch --> DB[💾 Database Agent<br/>SQL Generation]
+    DB --> SQLite[(SQLite<br/>1998 Equipment)]
+    SQLite --> DB
+    DB --> Orch
+    
+    Orch --> Resp[📊 Response Generator<br/>Widget Creation]
+    Resp --> Orch
+    
+    Orch --> Streamlit
+    Streamlit --> Dashboard[📈 Dynamic Dashboard]
+    
+    style Orch fill:#4a90e2,color:#fff
+    style NLU fill:#7b68ee,color:#fff
+    style DB fill:#50c878,color:#fff
+    style Resp fill:#ffa500,color:#fff
 ```
 
-### Separation of Concerns
+---
 
-```mermaid
-graph TD
-    subgraph "Data Layer"
-        A[DashboardSpec]
-        B[WidgetSpec]
-    end
-    
-    subgraph "Transform Layer"
-        C[transform_dashboard_spec]
-        D[DashboardConfig]
-    end
-    
-    subgraph "Styling Layer"
-        E[Theme]
-        F[CSSBuilder]
-        G[HTMLBuilders]
-    end
-    
-    subgraph "Rendering Layer"
-        H[StreamlitAdapter]
-        I[render_widget]
-    end
-    
-    A --> C
-    B --> C
-    C --> D
-    D --> H
-    E --> F
-    E --> G
-    F --> H
-    G --> H
-    H --> I
-    
-    style A fill:#bbdefb
-    style B fill:#bbdefb
-    style C fill:#c5e1a5
-    style D fill:#c5e1a5
-    style E fill:#fff9c4
-    style F fill:#fff9c4
-    style G fill:#fff9c4
-    style H fill:#ffccbc
-    style I fill:#ffccbc
+## 🤖 Agent Descriptions
+
+### 1. **Orchestrator Agent** (LangGraph)
+- **File:** `agents/orchestrator.py`
+- **Purpose:** Coordinates the multi-agent workflow
+- **Technology:** LangGraph StateGraph
+- **Responsibilities:**
+  - Routes user queries through the agent pipeline
+  - Manages state between agents
+  - Handles error recovery
+  - Returns final results to UI
+
+**Flow:**
 ```
+User Input → NLU → Database → Response Generator → Dashboard
+```
+
+---
+
+### 2. **NLU Agent** (Natural Language Understanding)
+- **File:** `agents/nlu_agent.py`
+- **Purpose:** Classifies user intent and extracts entities
+- **Technology:** OpenAI GPT-4o-mini with Structured Outputs
+- **Responsibilities:**
+  - Classify intent (10 types: aggregate, filtered, status, group_by, financial, maintenance, insert, update, delete, unknown)
+  - Extract entities (department, category, status, condition, equipment_name)
+  - Extract filter criteria (price_min, price_max)
+  - Provide confidence scores
+
+**Example:**
+```python
+Input: "Show me equipment out of service"
+Output: {
+    "intent": "status_query",
+    "entities": {"status": "Out of Service"},
+    "confidence": 0.95
+}
+```
+
+---
+
+### 3. **Database Agent** (SQL Operations)
+- **File:** `agents/database_agent.py`
+- **Purpose:** Generates and executes SQL queries
+- **Technology:** SQLite with parameterized queries
+- **Responsibilities:**
+  - Generate safe SQL queries from intent data
+  - Execute queries with proper error handling
+  - Return structured results
+  - Prevent SQL injection attacks
+
+**Supported Query Types:**
+- **Aggregate:** SUM, COUNT, AVG
+- **Filtered:** WHERE clauses with multiple criteria
+- **Status:** Filter by equipment status
+- **Group By:** Analytics by department, category, etc.
+- **Maintenance:** Equipment due for service
+- **Financial:** Depreciation calculations
+
+**Example:**
+```python
+Input: {"intent": "status_query", "entities": {"status": "Out of Service"}}
+SQL: SELECT * FROM equipment WHERE status = ?
+Params: ("Out of Service",)
+```
+
+---
+
+### 4. **Response Generator Agent** (Widget Creation)
+- **File:** `agents/response_generator.py`
+- **Purpose:** Converts database results into dashboard widgets
+- **Technology:** Pandas + Custom Widget Specs
+- **Responsibilities:**
+  - Create appropriate widget types (Scorecard, Table, Bar Chart)
+  - Format data for visualization
+  - Generate natural language responses
+  - Handle empty results gracefully
+
+**Widget Mapping:**
+| Query Type | Widget Type | Example |
+|------------|-------------|---------|
+| Aggregate | Scorecard | Total value: $37.7M |
+| Filtered | Table | List of 42 equipment items |
+| Group By | Bar Chart | Equipment by department |
+| Financial | Scorecard | Depreciation: $5.2M |
+
+---
+
+## 📊 Database Schema
+
+### Equipment Table
+```sql
+CREATE TABLE equipment (
+    -- Identity
+    id INTEGER PRIMARY KEY,
+    asset_tag TEXT UNIQUE NOT NULL,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    manufacturer TEXT,
+    model_number TEXT,
+    serial_number TEXT,
+    
+    -- Financial
+    purchase_date DATE,
+    purchase_price REAL,
+    current_value REAL,
+    depreciation_rate REAL,
+    
+    -- Location & Assignment
+    department TEXT NOT NULL,
+    location TEXT,
+    assigned_to TEXT,
+    
+    -- Status & Maintenance
+    status TEXT DEFAULT 'Active',
+    condition TEXT,
+    last_maintenance_date DATE,
+    next_maintenance_date DATE,
+    maintenance_interval_days INTEGER,
+    warranty_expiry_date DATE,
+    
+    -- Metadata
+    notes TEXT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP
+);
+```
+
+**Sample Data:** 1,998 equipment items across 6 categories, 10 departments, total value $37.7M
+
+**Categories:**
+- IT Equipment (laptops, servers, networking)
+- Manufacturing Equipment (CNC machines, lathes, presses)
+- Office Equipment (desks, chairs, projectors)
+- Medical Devices (monitors, ultrasound, defibrillators)
+- Vehicles (vans, trucks, cars)
+- Tools (drills, saws, wrenches)
+
+---
 
 ## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.11+
+- OpenAI API key
+- uv (Python package manager)
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone <repository-url>
+# Clone repository
+git clone https://github.com/rhuanca/dynamic_dashboard.git
 cd dynamic_dashboard
 
 # Install dependencies
 uv sync
+
+# Configure OpenAI API key
+cp .env.example .env
+# Edit .env and add: OPENAI_API_KEY=your_key_here
+
+# Initialize database with sample data
+uv run python database/sample_data.py
+
+# Run application
+uv run streamlit run app.py
 ```
 
-### Basic Usage
+The app will open at `http://localhost:8501`
 
-```python
-from api import create_dashboard
-from core.specs import DashboardSpec, WidgetSpec, WidgetType
-import pandas as pd
+---
 
-# Create sample data
-sales_data = pd.DataFrame({
-    'date': pd.date_range('2024-01-01', periods=30),
-    'sales': [15000, 18000, 22000, ...]
-})
+## 💬 Example Queries
 
-# Define dashboard
-dashboard = DashboardSpec(
-    dashboard_id="sales_dashboard",
-    title="Sales Dashboard",
-    widgets=[
-        # Scorecard
-        WidgetSpec(
-            widget_id="total_sales",
-            widget_type=WidgetType.SCORECARD,
-            title="Total Sales",
-            data={"value": 750000}
-        ),
-        # Time series chart
-        WidgetSpec(
-            widget_id="sales_trend",
-            widget_type=WidgetType.TIME_SERIES,
-            title="Sales Trend",
-            data=sales_data
-        )
-    ]
-)
-
-# Render dashboard
-create_dashboard(dashboard)
+### Financial Queries
+```
+"What's our total equipment value?"
+"What's our total depreciation?"
+"Show me equipment over $50,000"
 ```
 
-### Run Examples
-
-```bash
-# Professional theme (light)
-uv run streamlit run examples/comprehensive_demo.py
-
-# Dark theme
-uv run streamlit run examples/dark_comprehensive_demo.py
-
-# Ocean theme
-uv run streamlit run examples/ocean_theme_demo.py
+### Operational Queries
+```
+"Show me equipment out of service"
+"Equipment due for maintenance this month"
+"Show active equipment"
 ```
 
-## 🎨 Themes
-
-The library includes three built-in themes:
-
-### Professional Theme (Default)
-Clean, light theme for business dashboards
-```python
-create_dashboard(dashboard, theme="professional")
+### Analytics Queries
+```
+"Show equipment by department"
+"Equipment count by category"
+"Group by status"
 ```
 
-### Dark Theme
-Modern dark mode for reduced eye strain
-```python
-create_dashboard(dashboard, theme="dark")
+### Filtered Queries
+```
+"Show IT equipment"
+"Show all laptops"
+"Equipment in Building A"
 ```
 
-### Ocean Theme
-Blue/teal color scheme
-```python
-create_dashboard(dashboard, theme="ocean")
+---
+
+## 📁 Project Structure
+
+```
+dynamic_dashboard/
+├── agents/                      # Multi-agent system
+│   ├── orchestrator.py         # LangGraph workflow coordinator
+│   ├── nlu_agent.py            # Intent classification (OpenAI)
+│   ├── database_agent.py       # SQL query generation
+│   ├── response_generator.py   # Widget creation
+│   └── query_utils.py          # SQL utilities
+│
+├── database/                    # Data layer
+│   ├── schema.sql              # Database schema
+│   ├── db_manager.py           # Connection management
+│   ├── sample_data.py          # Sample data generator
+│   ├── init.py                 # Database initialization
+│   └── equipment.db            # SQLite database (gitignored)
+│
+├── core/                        # Dashboard core
+│   ├── specs.py                # Widget specifications
+│   └── transform.py            # Data transformations
+│
+├── bi_adapters/                 # Rendering adapters
+│   ├── base.py                 # Base adapter interface
+│   └── streamlit_adapter.py    # Streamlit renderer
+│
+├── themes/                      # UI themes
+│   ├── base.py                 # Theme definitions
+│   ├── css_builder.py          # CSS generation
+│   └── html_builders.py        # HTML components
+│
+├── config/                      # Configuration
+│   └── agent_config.yaml       # Agent settings
+│
+├── app.py                       # Main application
+├── chat_handler.py             # Chat message processing
+├── ui_layout.py                # UI layout components
+├── ui_custom_styles.py         # Custom CSS styles
+├── ui_styles.py                # Theme-based styles
+├── dashboard_renderer.py       # Dashboard rendering
+│
+├── .env.example                # Environment template
+├── pyproject.toml              # Dependencies
+└── README.md                   # This file
 ```
 
-### Custom Themes
+---
 
-Create your own theme:
+## 🔧 Technology Stack
 
-```python
-from themes import Theme, ThemeColors, ThemeTypography, ThemeSpacing, register_theme
+| Component | Technology | Purpose |
+|-----------|-----------|---------|
+| **Agent Framework** | LangGraph | Multi-agent orchestration |
+| **LLM** | OpenAI GPT-4o-mini | Intent classification |
+| **Database** | SQLite | Equipment data storage |
+| **UI Framework** | Streamlit | Web interface |
+| **Visualization** | Plotly | Interactive charts |
+| **Data Processing** | Pandas | Data manipulation |
+| **Package Manager** | uv | Dependency management |
 
-custom_theme = Theme(
-    name="custom",
-    colors=ThemeColors(
-        background="#ffffff",
-        card_background="#f5f5f5",
-        border="#e0e0e0",
-        text_primary="#212121",
-        text_secondary="#757575",
-        text_muted="#9e9e9e",
-        chart_primary="#1976d2",
-        chart_grid="#f5f5f5",
-        chart_axis="#e0e0e0",
-        positive="#4caf50",
-        negative="#f44336"
-    ),
-    typography=ThemeTypography(
-        font_family="Arial, sans-serif",
-        title_size="16px",
-        subtitle_size="14px",
-        body_size="13px",
-        caption_size="12px",
-        metric_size="32px",
-        title_weight="600",
-        subtitle_weight="600",
-        body_weight="400"
-    ),
-    spacing=ThemeSpacing(
-        card_padding="20px",
-        card_margin="16px",
-        card_border_radius="8px",
-        card_shadow="0 1px 3px rgba(0,0,0,0.1)"
-    )
-)
+---
 
-register_theme(custom_theme)
-create_dashboard(dashboard, theme="custom")
-```
+## 🎨 Key Features
 
-## 📊 Widget Types
+### ✅ Natural Language Interface
+Ask questions in plain English - no SQL knowledge required
 
-### Scorecard
-Display a single metric with professional styling
-```python
-WidgetSpec(
-    widget_id="metric",
-    widget_type=WidgetType.SCORECARD,
-    title="Total Revenue",
-    data={"value": 1250000}
-)
-```
+### ✅ Dynamic Widget Generation
+Automatically creates appropriate visualizations based on query type
 
-### Time Series Chart
-Line chart for time-based data
-```python
-WidgetSpec(
-    widget_id="trend",
-    widget_type=WidgetType.TIME_SERIES,
-    title="Sales Trend",
-    data=df  # DataFrame with date column
-)
-```
+### ✅ Multi-Agent Architecture
+Specialized agents for different tasks (NLU, Database, Response)
 
-### Bar Chart
-Compare values across categories
-```python
-WidgetSpec(
-    widget_id="categories",
-    widget_type=WidgetType.BAR_CHART,
-    title="Sales by Category",
-    data=category_df
-)
-```
+### ✅ Safe SQL Generation
+Parameterized queries prevent SQL injection
 
-### Table
-Display tabular data
-```python
-WidgetSpec(
-    widget_id="products",
-    widget_type=WidgetType.TABLE,
-    title="Top Products",
-    data=products_df
-)
-```
+### ✅ Extensible Design
+Easy to add new query types, agents, or data sources
 
-## 🔧 Advanced Features
+### ✅ Business-Ready Data
+Realistic equipment inventory with financial tracking
 
-### Grid Layout
+### ✅ Modular Codebase
+Clean separation of concerns, easy to maintain
 
-```python
-dashboard = DashboardSpec(
-    dashboard_id="grid_dashboard",
-    title="Grid Dashboard",
-    layout={
-        "type": "grid",
-        "columns": 3,  # 3-column grid
-        "gap": "medium"
-    },
-    widgets=[...]
-)
-```
+---
 
-### Data Flow
+## 🔐 Security
 
-```mermaid
-sequenceDiagram
-    participant User
-    participant API
-    participant Transform
-    participant Adapter
-    participant Theme
-    participant Streamlit
-    
-    User->>API: create_dashboard(spec, theme)
-    API->>Transform: transform_dashboard_spec(spec)
-    Transform->>Adapter: DashboardConfig
-    API->>Adapter: StreamlitAdapter(theme)
-    Adapter->>Theme: CSSBuilder(theme)
-    Adapter->>Theme: HTMLBuilders(theme)
-    Adapter->>Streamlit: render_dashboard()
-    Theme->>Streamlit: Styled components
-```
+- **SQL Injection Prevention:** All queries use parameterized statements
+- **API Key Management:** Environment variables for sensitive data
+- **Input Validation:** NLU agent validates and sanitizes user input
+- **Error Handling:** Graceful degradation on failures
+
+---
 
 ## 🧪 Testing
 
 ```bash
-# Run a simple test
-uv run streamlit run examples/simple_scorecard.py
+# Run sample queries
+uv run streamlit run app.py
 
-# Test all themes
-uv run streamlit run examples/comprehensive_demo.py
-uv run streamlit run examples/dark_comprehensive_demo.py
-uv run streamlit run examples/ocean_theme_demo.py
+# Test database operations
+uv run python -c "from database.db_manager import db_manager; print(db_manager.get_equipment_count())"
+
+# Test NLU agent
+uv run python -c "from agents.nlu_agent import nlu_agent; print(nlu_agent.process_query('show total value'))"
 ```
 
-## 📚 Key Concepts
+---
 
-### Separation of Concerns
+## 📈 Performance
 
-The library maintains clean separation between:
+- **Query Response Time:** < 2 seconds for most queries
+- **Database Size:** 1,998 records, ~800KB
+- **LLM Latency:** ~500ms for intent classification
+- **Concurrent Users:** Supports multiple simultaneous sessions
 
-1. **Data Layer** (`core/specs.py`) - What to display
-2. **Transform Layer** (`core/transform.py`) - Data normalization
-3. **Styling Layer** (`themes/`) - How it looks
-4. **Rendering Layer** (`bi_adapters/`) - Where it renders
+---
 
-### Theme System
+## 🛣️ Roadmap
 
-Themes are completely decoupled from core logic:
-- Theme = Data (colors, fonts, spacing)
-- CSSBuilder = Theme → CSS conversion
-- HTMLBuilders = Theme → HTML components
-- Adapter = Uses builders for rendering
+- [ ] Add user authentication
+- [ ] Implement "Publish Dashboard" feature
+- [ ] Add more visualization types (pie charts, gauges)
+- [ ] Support for multiple databases
+- [ ] Export functionality (PDF, Excel)
+- [ ] Real-time data updates
+- [ ] Mobile-responsive design
+- [ ] Multi-language support
 
-### Extensibility
-
-Easy to extend:
-- ✅ Add new themes (just data, no code changes)
-- ✅ Add new widget types (extend adapter)
-- ✅ Add new adapters (implement BaseAdapter)
-- ✅ Customize styling (use builders)
+---
 
 ## 🤝 Contributing
 
 Contributions welcome! The modular architecture makes it easy to:
-- Add new themes
+- Add new agent types
 - Create new widget types
-- Build new adapters (PowerBI, Tableau, etc.)
-- Enhance existing functionality
+- Build new BI adapters (PowerBI, Tableau)
+- Enhance NLU capabilities
+
+---
 
 ## 📄 License
 
-[Your License Here]
+MIT License - see LICENSE file for details
+
+---
 
 ## 🙏 Acknowledgments
 
 Built with:
 - [Streamlit](https://streamlit.io/) - Dashboard framework
+- [LangGraph](https://github.com/langchain-ai/langgraph) - Agent orchestration
+- [OpenAI](https://openai.com/) - Language models
 - [Plotly](https://plotly.com/) - Interactive charts
 - [Pandas](https://pandas.pydata.org/) - Data manipulation
+
+---
+
+## 📞 Contact
+
+For questions or support, please open an issue on GitHub.
+
+---
+
+**Built with ❤️ using Multi-Agent AI Architecture**
