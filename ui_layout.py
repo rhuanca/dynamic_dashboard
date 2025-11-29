@@ -14,9 +14,13 @@ from ui_styles import get_welcome_screen_html
 
 # Constants
 INITIAL_WELCOME_MESSAGE = (
-    "Hello! I'm your Inventory Data Analyst Assistant. "
-    "Try commands like 'add us population', 'add sales chart', "
-    "'add sales trend', or 'add products table' to see different visualizations."
+    "Hello! I'm your Equipment Inventory Assistant. "
+    "Ask me questions in natural language like:\n\n"
+    "• 'What's our total equipment value?'\n"
+    "• 'Show me equipment out of service'\n"
+    "• 'Equipment due for maintenance this month'\n"
+    "• 'Show equipment by department'\n"
+    "• 'What's our total depreciation?'"
 )
 
 
@@ -195,7 +199,7 @@ def render_main_layout() -> None:
                 font-size: 16px;
                 font-weight: 600;
                 letter-spacing: -0.01em;
-            ">Inventory Data Analyst Assistant</span>
+            ">Equipment Inventory Assistant</span>
             <span style="
                 color: #cbd5e0;
                 font-size: 14px;
@@ -218,5 +222,6 @@ def render_main_layout() -> None:
         render_chat_interface()
     
     with col2:
-        st.markdown("### Dashboard")
+        st.markdown("### Insights")
         render_dashboard_area()
+
